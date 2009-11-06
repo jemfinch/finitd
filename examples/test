@@ -1,0 +1,16 @@
+finitd.child.chdir: .
+finitd.child.stdout: out
+finitd.child.command: sleep 600
+
+finitd.env.test_env_set: foo bar baz
+
+finitd.options.pidfile: pid
+finitd.options.clearenv: True
+
+finitd.watcher.wait: True
+finitd.watcher.restart: True
+
+finitd.commands.arbitrary.ls.command: ls -l
+
+#finitd.child.setuid: daemon
+#finitd.child.setgid: irc
