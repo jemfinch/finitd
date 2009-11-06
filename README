@@ -1,0 +1,39 @@
+Though more documentation should be forthcoming, this basic README
+will have to do for now.
+
+I really hate writing init.d scripts.  They're always a bunch of
+arcane /bin/sh invocations and I usually find the end results to be
+less reliable than the majority of other tools I use.
+
+So instead, I wrote finitd (pronounced "fin it dee" or "eff initd").
+It is a configuration file interpreter: you write a basic
+configuration file explaining what command you want to run, where you
+want to redirect its stdin/stdout, etc. (basically all the options you
+would consider writing writing a program which daemonizes itself) and
+finitd will interpret that configuration file and act as an init.d
+script, with standard start/stop/restart commands (and a few others).
+
+finitd has a few additional features, though.  If configured to
+"watch" the process it spawns, it will daemonize, fork and exec the
+configured process, and then wait on it, optionally taking action
+(such as restarting the process) when the process exits.  This allows
+finitd to be a more reliable "babysitter" for processes than many
+other such (typically homegrown) programs which grep through `ps`
+output, etc.
+
+To do your own experiments with finitd, just run "finitd /dev/null
+annotate" and finitd will output an annotated configuration file
+showing all the variables and describing their function.  /dev/null
+here functions as finitd's configuration file, since that must be the
+first argument to finitd.  Alternatively, finitd can receive its
+configuration on the command line: finitd /dev/null --help will
+explain that.
+
+You can configure additional commands (e.g., for a "graceful" stop, or
+a "fullstatus" command) by adding them to the
+"finitd.commands.arbitrary" group.  These commands will run in the
+same exact environment as all other commands, and so may be useful for
+debugging issues with your finitd configuration file: if you want to
+see the current directory your finitd script is running in, you can
+add the following line to your configuration file:
+"finitd.commands.arbitrary.pwd.command: pwd".

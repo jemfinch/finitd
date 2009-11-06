@@ -70,8 +70,9 @@ class Signal(hieropt.Value):
 class CommandGroup(hieropt.Group):
     def __init__(self, name):
         hieropt.Group.__init__(self, name)
-        self.register(hieropt.Value('command', comment="""The actual command to run for the
-                                                         %s command.""" % self.name))
+        self.register(hieropt.Value('command',
+                                    comment="""The actual command to run for the
+                                               %s command.""" % self._name))
         
 config = hieropt.Group('finitd')
 child = config.register(hieropt.Group('child'))

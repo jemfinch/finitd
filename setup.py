@@ -36,6 +36,7 @@ setup(
     version = "0.1",
     packages = ['finitd', 'finitd.test'],
     install_requires = 'hieropt >= 0.1',
+    url = 'http://sourceforge.net/projects/finitd',
     
     entry_points = {
         'console_scripts': [

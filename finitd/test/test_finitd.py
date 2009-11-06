@@ -65,7 +65,7 @@ def resetConfig(config):
     # Breaks on 2.4, for some reason.
     #return copy.deepcopy(config)
     for (_, g) in config:
-        if hasattr(g, 'reset'):
+        if hasattr(g.__class__, 'reset'):
             g.reset()
     return config
     
@@ -96,8 +96,9 @@ def runConfig(config, finitd_command='start', caller=None):
     ret = os.system('finitd %s %s' % (fn, finitd_command))
     # Especially on multiprocessor machines, we need to allow finitd to run
     # before we check whether it ran properly.  So we sleep for a short time here.
-    # 0.01s worked on a 3Ghz Core 2 Duo, but didn't work on a 1.8Ghz Opteron.
-    time.sleep(0.1)
+    # 0.01s worked on a 3Ghz Core 2 Duo (sometimes), but didn't work on a 1.8Ghz
+    # Opteron.
+    time.sleep(0.2)
     return ret
 
 def runCommand(command, finitd_command='start'):
@@ -207,6 +208,11 @@ def test_basic_restart():
     pid2 = assert_pidfile(pidfile(config))
     assert_not_equals(pid1, pid2)
     
+def test_arbitrary_command():
+    config = getBasicConfig()
+    config.commands.arbitrary.pwd.command.set('pwd > pwdout')
+    runConfig(config, finitd_command='pwd')
+    assert_file_equals(config, 'pwdout', config.child.chdir() + '\n')
     
 if os.getuid() == 0:
     def test_setuid_setgid():
@@ -215,7 +221,6 @@ if os.getuid() == 0:
         config.child.setgid.setFromString('bin')
         config.child.command.set('id')
         runConfig(config)
-
 
 # Pretty sure there's no design change we can do to make this work.
 #def test_basic_with_conjunction():

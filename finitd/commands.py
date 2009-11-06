@@ -302,9 +302,9 @@ class annotate(Command):
         self.config.writefp(sys.stdout)
 
 class ArbitraryCommand(Command):
-    def __init__(self, name, config):
+    def __init__(self, config, name):
         self.command = config.commands.arbitrary.get(name)
-        Command.__init__(self, name, config)
+        Command.__init__(self, config, name)
 
     def checkConfig(self, config):
         if not self.command.command():
@@ -312,7 +312,10 @@ class ArbitraryCommand(Command):
                                        % self.name)
 
     def run(self, args, environ):
-        self.execute(environ, self.command.command())
+        self.chdir()
+        self.chroot()
+        os.system(self.command.command())
+        #self.execute(environ, self.command.command())
 
 commands = OrderedDict([
     ('start', start),

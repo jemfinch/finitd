@@ -32,7 +32,7 @@
 
 import grp
 
-from finitd import Config, conf
+from finitd import conf
 from finitd.test import *
 from hieropt.test.test_hieropt import assert_write_then_read_equivalence
 
