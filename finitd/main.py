@@ -39,8 +39,6 @@ import textwrap
 from finitd.conf import config
 from finitd import util, commands
 
-basic_usage = '%prog <configfile> [options] <command>'
-
 def makeEnvironment(config):
     # Do we start with a clear environment or our existing one?
     if config.options.clearenv():
@@ -69,13 +67,20 @@ def makeEnvironment(config):
 
     return environ
 
-def makeHelp(configFilename=None, usage=basic_usage):
-    usage = usage.replace('<command>', '{%s}' % '|'.join(commands.commands.keys()))
+def makeHelp(commands,
+             configFilename=None,
+             usage='%prog <configfile> [options] <command>'):
+    if commands:
+        usage = usage.replace('<command>', '{%s}' %
+                              '|'.join(command.name for command in commands))
     indent = '\t' * 3
+    progname = os.path.basename(sys.argv[0])
     parts = ['Commands:']
-    for (name, command) in commands.commands.items():
+    for command in commands:
         if configFilename is not None:
-            name = '%s %s %s' % (os.path.basename(sys.argv[0]), configFilename, name)
+            name = '%s %s %s' % (progname, configFilename, command.name)
+        else:
+            name = command.name
         parts.extend([
             name,
             textwrap.fill(command.help(),
@@ -86,9 +91,9 @@ def makeHelp(configFilename=None, usage=basic_usage):
     return '%s\n\n%s' % (usage, '\n'.join(parts))
 
 def main():
-    parser = optparse.OptionParser(usage=makeHelp())
+    parser = optparse.OptionParser(usage=makeHelp([]))
     config.toOptionParser(parser=parser)
-    parser.disable_interspersed_args()
+    parser.disable_interspersed_args() # For future support of commands with args.
     if len(sys.argv) >= 2 and not sys.argv[1].startswith('-'):
         configFilename = sys.argv.pop(1)
         try:
@@ -100,11 +105,10 @@ def main():
         config.readenv()
         #config.writefp(sys.stdout)
 
+        cmds = [getattr(commands, name)(config) for name in commands.commands]
         for child in config.commands.arbitrary.children():
-            commands.commands[child._name] = commands.ArbitraryCommand
-        for (name, command) in commands.commands.items():
-            commands.commands[name] = command(config, name)
-        parser.set_usage(makeHelp(configFilename))
+            cmds.append(commands.ArbitraryCommand(config, name))
+        parser.set_usage(makeHelp(cmds, configFilename))
     else:
         parser.error('A configuration file must be provided.')
 
@@ -122,17 +126,16 @@ def main():
 
 
     try:
-        Command = commands.commands[commandName]
-    except KeyError:
+        (command,) = [cmd for cmd in cmds if cmd.name == commandName]
+    except ValueError: # unpack list of wrong size
         parser.error('Invalid command: %r' % commandName)
 
     try:
-        command = Command(config, commandName)
+        command.checkConfig(config)
     except commands.InvalidConfiguration, e:
         util.error('Invalid configuration: %s' % e)
 
     environ = makeEnvironment(config)
-    command.checkConfig(config)
     command.run(args, environ)
 
 if __name__ == '__main__':

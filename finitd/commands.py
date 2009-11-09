@@ -339,12 +339,12 @@ class ArbitraryCommand(Command):
         os.system(self.command.command())
         #self.execute(environ, self.command.command())
 
-commands = OrderedDict([
-    ('start', start),
-    ('stop', stop),
-    ('kill', kill),
-    ('restart', restart),
-    ('status', status),
-    ('debug', debug),
-    ('annotate', annotate),
-])
+commands = [
+    'start',
+    'stop',
+    'kill',
+    'restart',
+    'status',
+    'debug',
+    'annotate',
+]
