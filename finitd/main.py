@@ -34,11 +34,12 @@ import os
 import sys
 import syslog
 import optparse
+import textwrap
 
 from finitd.conf import config
 from finitd import util, commands
 
-usage = '%prog <configfile> [options] <command>'
+basic_usage = '%prog <configfile> [options] <command>'
 
 def makeEnvironment(config):
     # Do we start with a clear environment or our existing one?
@@ -52,7 +53,7 @@ def makeEnvironment(config):
         if value.expectsValue() and value.isSet():
             name = name.upper().replace('.', '_')
             environ[name] = str(value)
-            if name.endswith('_PIDFILE'):
+            if value._name == 'pidfile':
                 pid = util.getPidFromFile(value())
                 if pid and util.checkProcessAlive(pid):
                     environ[name[:-4]] = str(pid)
@@ -68,8 +69,24 @@ def makeEnvironment(config):
 
     return environ
 
+def makeHelp(configFilename=None, usage=basic_usage):
+    usage = usage.replace('<command>', '{%s}' % '|'.join(commands.commands.keys()))
+    indent = '\t' * 3
+    parts = ['Commands:']
+    for (name, command) in commands.commands.items():
+        if configFilename is not None:
+            name = '%s %s %s' % (os.path.basename(sys.argv[0]), configFilename, name)
+        parts.extend([
+            name,
+            textwrap.fill(command.help(),
+                          width = 70 - len(indent.replace('\t', ' '*8)),
+                          initial_indent=indent,
+                          subsequent_indent=indent),
+        ])
+    return '%s\n\n%s' % (usage, '\n'.join(parts))
+
 def main():
-    parser = optparse.OptionParser(usage=usage)
+    parser = optparse.OptionParser(usage=makeHelp())
     config.toOptionParser(parser=parser)
     parser.disable_interspersed_args()
     if len(sys.argv) >= 2 and not sys.argv[1].startswith('-'):
@@ -85,8 +102,9 @@ def main():
 
         for child in config.commands.arbitrary.children():
             commands.commands[child._name] = commands.ArbitraryCommand
-        parser.set_usage(usage.replace('<command>',
-                                       '{%s}' % '|'.join(commands.commands.keys())))
+        for (name, command) in commands.commands.items():
+            commands.commands[name] = command(config, name)
+        parser.set_usage(makeHelp(configFilename))
     else:
         parser.error('A configuration file must be provided.')
 
@@ -114,6 +132,7 @@ def main():
         util.error('Invalid configuration: %s' % e)
 
     environ = makeEnvironment(config)
+    command.checkConfig(config)
     command.run(args, environ)
 
 if __name__ == '__main__':

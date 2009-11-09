@@ -73,6 +73,9 @@ class CommandGroup(hieropt.Group):
         self.register(hieropt.Value('command',
                                     comment="""The actual command to run for the
                                                %s command.""" % self._name))
+        self.register(hieropt.Value('help', default='(No help text provided)',
+                                    comment="""A description of what the %s command
+                                               does""" % self._name))
         
 config = hieropt.Group('finitd')
 child = config.register(hieropt.Group('child'))

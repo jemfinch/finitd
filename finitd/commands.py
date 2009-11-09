@@ -57,10 +57,13 @@ class Command(object):
             name = self.__class__.__name__.lower()
         self.name = name
         self.config = config
-        self.checkConfig(config)
 
     def checkConfig(self, config):
         return # No checking performed by default.
+
+    @classmethod
+    def help(cls):
+        return cls.__doc__
 
     def run(self, args, environ):
         raise NotImplementedError
@@ -125,6 +128,7 @@ class Command(object):
 
 
 class start(Command):
+    """Starts the configured child process."""
     def checkConfig(self, config):
         if config.options.pidfile() is None:
             raise InvalidConfiguration('finitd.options.pidfile must be configured.')
@@ -190,6 +194,7 @@ class start(Command):
             if pid:
                 def sigusr1(signum, frame):
                     log('received SIGUSR1, removing watcher pidfile and exiting')
+                    # XXX All we really need to do is configure not to restart, right?
                     # Originally I removed both pidfiles here, but it's needed in order
                     # to kill the child process, which must necessarily happen after the
                     # watcher exits, if the watcher is configured to restart the child.
@@ -232,6 +237,8 @@ class start(Command):
     
 
 class debug(start): # subclassing start to inherit checkConfig
+    """Starts the configured child process without daemonizing or redirecting
+    stdin/stdout/stderr, for debugging problems with starting the process."""
     def run(self, args, environ):
         self.chdir()
         self.chroot()
@@ -242,6 +249,7 @@ class debug(start): # subclassing start to inherit checkConfig
     
 
 class stop(Command):
+    """Stops the running child process by sending it SIGTERM."""
     def checkConfig(self, config):
         if not config.options.pidfile():
             raise InvalidConfiguration('Cannot stop the process without a configured'
@@ -269,6 +277,7 @@ class stop(Command):
             sys.exit(1) # to match start-stop-daemon
         
 class restart(Command):
+    """Restarts the process.  Equivalent to `stop` followed by `start`"""
     def run(self, args, environ):
         stop(self.config).run([], environ)
         waitFor(self.config.options.restartWaitTime())
@@ -278,6 +287,8 @@ class restart(Command):
         start(self.config).run([], environ)
 
 class kill(Command):
+    """Attempts to stop the process ordinarily, but if that fails, sends the process
+    SIGKILL."""
     def run(self, args, environ):
         stop(self.config).run([], environ)
         waitingUntil = time.time() + self.config.options.killWaitTime()
@@ -290,14 +301,22 @@ class kill(Command):
                 error('Cannot kill process %s' % self.getPidFromFile())
 
 class status(Command):
+    """Returns whether the process is alive or not.  Prints a message and exits with
+    error status 0 if the process exists, with error status 1 if the process does not
+    exist."""
     def run(self, args, environ):
         pid = self.checkProcessAlive()
         if pid:
             print 'Process is running at pid %s' % pid
+            sys.exit(0)
         else:
-            print 'Process is not running.' % pid
+            print 'Process is not running.'
+            sys.exit(1)
 
 class annotate(Command):
+    """Annotates the given configuration file and outputs it to stdout.  Useful with
+    /dev/null as a configuration file just to output an annotated configuration file
+    ready for modification."""
     def run(self, args, environ):
         self.config.writefp(sys.stdout)
 
@@ -311,6 +330,9 @@ class ArbitraryCommand(Command):
             raise InvalidConfiguration('finitd.commands.%s.command must be set.'
                                        % self.name)
 
+    def help(self):
+        return self.command.help() or ''
+    
     def run(self, args, environ):
         self.chdir()
         self.chroot()
