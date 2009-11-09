@@ -33,7 +33,7 @@
 from setuptools import setup, find_packages
 setup(
     name = "finitd",
-    version = "0.2",
+    version = "0.3",
     packages = ['finitd', 'finitd.test'],
     install_requires = 'hieropt >= 0.1',
     url = 'http://sourceforge.net/projects/finitd',
