@@ -222,6 +222,17 @@ if os.getuid() == 0:
         config.child.command.set('id')
         runConfig(config)
 
+def test_basic_appends_stdout_stderr():
+    config = getBasicConfig()
+    config.child.command.set('echo 1')
+    runConfig(config)
+    assert_stdout_equals(config, '1\n')
+    config.child.command.set('echo 2')
+    runConfig(config)
+    assert_stdout_equals(config, '1\n2\n')
+    
+
+
 # Pretty sure there's no design change we can do to make this work.
 #def test_basic_with_conjunction():
 #    config = runCommand('echo foo && echo bar')

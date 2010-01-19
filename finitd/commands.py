@@ -173,10 +173,11 @@ class start(Command):
         os.closerange(0, MAXFD)
         fd = os.open(self.config.child.stdin(), os.O_CREAT | os.O_RDONLY)
         assert fd == 0, 'stdin fd = %r' % fd
-        fd = os.open(self.config.child.stdout(), os.O_CREAT | os.O_WRONLY)
+        fd = os.open(self.config.child.stdout(), os.O_CREAT | os.O_WRONLY | os.O_APPEND)
         assert fd == 1, 'stdout fd = %r' % fd
         if self.config.child.stderr() != self.config.child.stdout():
-            fd = os.open(self.config.child.stderr(), os.O_CREAT | os.O_WRONLY)
+            fd = os.open(self.config.child.stderr(),
+                         os.O_CREAT | os.O_WRONLY | os.O_APPEND)
             assert fd == 2, 'stderr fd = %r' % fd
         else:
             os.dup2(1, 2)
